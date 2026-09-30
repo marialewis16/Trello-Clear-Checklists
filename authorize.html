@@ -241,9 +241,9 @@
         'Done. The selected checkmarks have been cleared.'
     );
 
-    setTimeout(function () {
-        t.closePopup();
-    }, 1000);
+   setTimeout(function () {
+    window.parent.postMessage({ action: 'close' }, '*');
+}, 1000);
 }).catch(function (error) {
 
                 console.error(error);
