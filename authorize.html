@@ -21,9 +21,9 @@
             content.innerHTML = '<p>' + message + '</p>';
         }
 
-        function getApi() {
-            return t.getRestApi();
-        }
+       function getApi() {
+    return Promise.resolve(t.getRestApi());
+}
 
         function loadChecklists() {
             showMessage('Finding checklists...');
