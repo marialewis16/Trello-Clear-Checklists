@@ -123,55 +123,66 @@ var api = results[1];
             clearChecklists(checklists);
         }
 
-        function clearChecklists(checklists) {
-            showMessage('Clearing checkmarks...');
+       function clearChecklists(checklists) {
+    showMessage('Clearing checkmarks...');
 
-            Promise.all([
-                t.board('id'),
-                getApi()
-            ]).then(function (results) {
-                var boardId = results[0];
-                var api = results[1];
+    Promise.all([
+        t.board('id'),
+        getApi()
+    ]).then(function (results) {
+        var boardId = results[0].id;
+        var api = results[1];
 
-                return api.getToken().then(function (token) {
-                    if (!token) {
-                        throw new Error('Authorization is required.');
-                    }
+        return api.getToken().then(function (token) {
+            if (!token) {
+                throw new Error('Authorization is required.');
+            }
+
+            return fetch(
+                'https://api.trello.com/1/boards/' +
+                boardId +
+                '/cards?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                encodeURIComponent(token)
+            ).then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Unable to load board cards.');
+                }
+
+                return response.json();
+            }).then(function (cards) {
+
+                var cardRequests = cards.map(function (card) {
 
                     return fetch(
-                        'https://api.trello.com/1/boards/' +
-                        boardId +
-                        '/cards?checklists=all&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                        'https://api.trello.com/1/cards/' +
+                        card.id +
+                        '/checklists?checkItems=true&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
                         encodeURIComponent(token)
-                    );
-                }).then(function (response) {
-                    if (!response.ok) {
-                        throw new Error('Unable to load board cards.');
-                    }
-
-                    return response.json();
-                }).then(function (cards) {
-                    var requests = [];
-
-                    cards.forEach(function (card) {
-                        if (!card.checklists) {
-                            return;
+                    ).then(function (response) {
+                        if (!response.ok) {
+                            throw new Error(
+                                'Unable to load checklists for card ' +
+                                card.id
+                            );
                         }
 
-                        card.checklists.forEach(function (checklist) {
+                        return response.json();
+                    }).then(function (cardChecklists) {
+
+                        var requests = [];
+
+                        cardChecklists.forEach(function (checklist) {
+
                             var shouldClear = checklists.some(function (selected) {
                                 return selected.name === checklist.name;
                             });
 
-                            if (!shouldClear) {
-                                return;
-                            }
-
-                            if (!checklist.checkItems) {
+                            if (!shouldClear || !checklist.checkItems) {
                                 return;
                             }
 
                             checklist.checkItems.forEach(function (item) {
+
                                 if (item.state !== 'complete') {
                                     return;
                                 }
@@ -195,28 +206,36 @@ var api = results[1];
                                     ).then(function (response) {
                                         if (!response.ok) {
                                             throw new Error(
-                                                'Unable to clear a checklist item.'
+                                                'Unable to uncheck item "' +
+                                                item.name +
+                                                '".'
                                             );
                                         }
                                     })
                                 );
                             });
-                        });
-                    });
 
-                    return Promise.all(requests);
+                            return Promise.all(requests);
+                        });
+
+                        return Promise.all(requests);
+                    });
                 });
-            }).then(function () {
-                showMessage(
-                    'Done. The selected checkmarks have been cleared.'
-                );
-            }).catch(function (error) {
-                console.error(error);
-                showMessage(
-                    'Something went wrong while clearing the checkmarks.'
-                );
+
+                return Promise.all(cardRequests);
             });
-        }
+        });
+    }).then(function () {
+        showMessage(
+            'Done. The selected checkmarks have been cleared.'
+        );
+    }).catch(function (error) {
+        console.error(error);
+        showMessage(
+            'Something went wrong while clearing the checkmarks.'
+        );
+    });
+}
 
         t.render(function () {
             getApi().then(function (api) {
