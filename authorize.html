@@ -171,71 +171,77 @@
 
                         var requests = [];
 
-                        cards.forEach(function (card) {
+cards.forEach(function (card) {
 
-                            if (!card.checklists) {
-                                return;
-                            }
+    if (!card.checklists) {
+        return;
+    }
 
-                            card.checklists.forEach(function (checklist) {
+    card.checklists.forEach(function (checklist) {
 
-                                var selected = selectedChecklists.some(
-                                    function (selectedChecklist) {
-                                        return selectedChecklist.name === checklist.name;
-                                    }
-                                );
+        var selected = selectedChecklists.some(
+            function (selectedChecklist) {
+                return selectedChecklist.name === checklist.name;
+            }
+        );
 
-                                if (!selected) {
-                                    return;
-                                }
+        if (!selected) {
+            return;
+        }
 
-                                if (!checklist.checkItems) {
-                                    return;
-                                }
+        if (!checklist.checkItems) {
+            return;
+        }
 
-                                checklist.checkItems.forEach(function (item) {
+        checklist.checkItems.forEach(function (item) {
 
-                                    if (item.state !== 'complete') {
-                                        return;
-                                    }
+            if (item.state !== 'complete') {
+                return;
+            }
 
-                                    requests.push(
-                                        fetch(
-                                            'https://api.trello.com/1/cards/' +
-                                            card.id +
-                                            '/checklist/' +
-                                            checklist.id +
-                                            '/checkItem/' +
-                                            item.id +
-                                            '?state=incomplete&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                                            encodeURIComponent(token),
-                                            {
-                                                method: 'PUT',
-                                                headers: {
-                                                    'Accept': 'application/json'
-                                                }
-                                            }
-                                        ).then(function (response) {
-
-                                            if (!response.ok) {
-                                                throw new Error(
-                                                    'Unable to uncheck "' +
-                                                    item.name +
-                                                    '".'
-                                                );
-                                            }
-
-                                            return response.json();
-                                        })
-                                    );
-                                });
-                            });
-                        });
-
-                       return requests.reduce(function (promise, request) {
-    return promise.then(function () {
-        return request;
+            requests.push({
+                cardId: card.id,
+                checklistId: checklist.id,
+                itemId: item.id,
+                itemName: item.name
+            });
+        });
     });
+});
+
+return requests.reduce(function (promise, request) {
+
+    return promise.then(function () {
+
+        return fetch(
+            'https://api.trello.com/1/cards/' +
+            request.cardId +
+            '/checklist/' +
+            request.checklistId +
+            '/checkItem/' +
+            request.itemId +
+            '?state=incomplete&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+            encodeURIComponent(token),
+            {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }
+        ).then(function (response) {
+
+            if (!response.ok) {
+                throw new Error(
+                    'Unable to uncheck "' +
+                    request.itemName +
+                    '".'
+                );
+            }
+
+            return response.json();
+        });
+    });
+
 }, Promise.resolve());
                     });
                 });
