@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Clear Checkmarks</title>
+</head>
+<body>
+    <button id="authorizeButton">Authorize Clear Checkmarks</button>
+
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+
+    <script>
+        var t = window.TrelloPowerUp.iframe();
+
+        var restApi = t.getRestApi();
+
+        document.getElementById('authorizeButton').onclick = function () {
+            restApi.authorize({
+                scope: 'read,write'
+            });
+        };
+    </script>
+</body>
+</html>
