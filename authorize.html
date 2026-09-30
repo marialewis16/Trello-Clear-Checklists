@@ -32,8 +32,8 @@
                 t.board('id'),
                 getApi()
             ]).then(function (results) {
-                var boardId = results[0];
-                var api = results[1];
+               var boardId = results[0].id;
+var api = results[1];
 
                 return api.getToken().then(function (token) {
                     if (!token) {
