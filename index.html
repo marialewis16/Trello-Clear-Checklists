@@ -7,7 +7,35 @@
 <body>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
     <script>
-        window.TrelloPowerUp.initialize({});
+        var ICON = 'https://marialewis16.github.io/Trello-Clear-Checklists/icon.svg';
+
+        window.TrelloPowerUp.initialize({
+            'board-buttons': function (t, opts) {
+                return [{
+                    icon: {
+                        dark: ICON,
+                        light: ICON
+                    },
+                    text: 'Clear Checkmarks',
+                    condition: 'edit',
+                    callback: function (t) {
+                        return t.popup({
+                            title: 'Clear Checkmarks',
+                            items: [
+                                {
+                                    text: 'Test Button',
+                                    callback: function (t) {
+                                        return t.alert({
+                                            message: 'The Clear Checklists button is working.'
+                                        });
+                                    }
+                                }
+                            ]
+                        });
+                    }
+                }];
+            }
+        });
     </script>
 </body>
 </html>
