@@ -232,7 +232,11 @@
                             });
                         });
 
-                        return Promise.all(requests);
+                       return requests.reduce(function (promise, request) {
+    return promise.then(function () {
+        return request;
+    });
+}, Promise.resolve());
                     });
                 });
 
