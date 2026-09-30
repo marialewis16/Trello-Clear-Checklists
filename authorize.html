@@ -236,13 +236,15 @@
                     });
                 });
 
-            }).then(function () {
+           }).then(function () {
+    showMessage(
+        'Done. The selected checkmarks have been cleared.'
+    );
 
-                showMessage(
-                    'Done. The selected checkmarks have been cleared.'
-                );
-
-            }).catch(function (error) {
+    setTimeout(function () {
+        t.closePopup();
+    }, 1000);
+}).catch(function (error) {
 
                 console.error(error);
 
