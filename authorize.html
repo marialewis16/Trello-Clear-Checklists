@@ -232,7 +232,48 @@ cards.forEach(function (card) {
     });
 });
 
-return Promise.all(requests);
+return new Promise(function (resolve, reject) {
+
+    var index = 0;
+    var active = 0;
+    var completed = 0;
+    var total = requests.length;
+
+    if (total === 0) {
+        resolve();
+        return;
+    }
+
+    function runNext() {
+
+        while (active < 5 && index < total) {
+
+            var request = requests[index++];
+
+            active++;
+
+            request.then(function () {
+
+                active--;
+                completed++;
+
+                if (completed === total) {
+                    resolve();
+                    return;
+                }
+
+                runNext();
+
+            }).catch(function (error) {
+
+                reject(error);
+
+            });
+        }
+    }
+
+    runNext();
+});
                     });
                 });
 
