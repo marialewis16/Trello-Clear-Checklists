@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,7 +6,7 @@
     <title>Clear Checkmarks</title>
 </head>
 <body>
-    <button id="authorizeButton">Authorize Clear Checkmarks</button>
+    <div id="content">Loading...</div>
 
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
 
@@ -15,25 +16,198 @@
             appName: 'Clear Checkmarks'
         });
 
-        t.render(function () {
-            var button = document.getElementById('authorizeButton');
+        var content = document.getElementById('content');
 
+        function showMessage(message) {
+            content.innerHTML = '<p>' + message + '</p>';
+        }
+
+        function loadChecklists() {
+            showMessage('Finding checklists...');
+
+            Promise.all([
+                t.board('id'),
+                t.getRestApi().getToken()
+            ]).then(function (results) {
+                var boardId = results[0];
+                var token = results[1];
+
+                if (!token) {
+                    showMessage('Authorization is required.');
+                    return;
+                }
+
+                return fetch(
+                    'https://api.trello.com/1/boards/' +
+                    boardId +
+                    '/checklists?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                    encodeURIComponent(token),
+                    {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+            }).then(function (response) {
+                if (!response) {
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('Trello returned an error.');
+                }
+
+                return response.json();
+            }).then(function (checklists) {
+                if (!checklists) {
+                    return;
+                }
+
+                if (checklists.length === 0) {
+                    showMessage('No checklists were found on this board.');
+                    return;
+                }
+
+                content.innerHTML = '';
+
+                var heading = document.createElement('p');
+                heading.innerText = 'Choose a checklist to clear:';
+                content.appendChild(heading);
+
+                var allButton = document.createElement('button');
+                allButton.innerText = 'All Checklists';
+                allButton.style.display = 'block';
+                allButton.style.marginBottom = '8px';
+                allButton.onclick = function () {
+                    confirmClear('All Checklists', checklists);
+                };
+                content.appendChild(allButton);
+
+                var names = [];
+
+                checklists.forEach(function (checklist) {
+                    if (names.indexOf(checklist.name) === -1) {
+                        names.push(checklist.name);
+                    }
+                });
+
+                names.sort();
+
+                names.forEach(function (name) {
+                    var button = document.createElement('button');
+
+                    button.innerText = name;
+                    button.style.display = 'block';
+                    button.style.marginBottom = '8px';
+
+                    button.onclick = function () {
+                        var matching = checklists.filter(function (checklist) {
+                            return checklist.name === name;
+                        });
+
+                        confirmClear(name, matching);
+                    };
+
+                    content.appendChild(button);
+                });
+            }).catch(function (error) {
+                console.error(error);
+                showMessage('Unable to load the checklists.');
+            });
+        }
+
+        function confirmClear(name, checklists) {
+            var confirmed = window.confirm(
+                'Clear all checkmarks in "' + name +
+                '" across this board?'
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            clearChecklists(checklists);
+        }
+
+        function clearChecklists(checklists) {
+            showMessage('Clearing checkmarks...');
+
+            t.getRestApi().getToken().then(function (token) {
+                if (!token) {
+                    throw new Error('Authorization is required.');
+                }
+
+                var requests = [];
+
+                checklists.forEach(function (checklist) {
+                    requests.push(
+                        fetch(
+                            'https://api.trello.com/1/checklists/' +
+                            checklist.id +
+                            '/checkItems?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                            encodeURIComponent(token),
+                            {
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            }
+                        ).then(function (response) {
+                            if (!response.ok) {
+                                throw new Error('Unable to read checklist items.');
+                            }
+
+                            return response.json();
+                        }).then(function (items) {
+                            return items.map(function (item) {
+                                return fetch(
+                                    'https://api.trello.com/1/checklists/' +
+                                    checklist.id +
+                                    '/checkItems/' +
+                                    item.id +
+                                    '?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                                    encodeURIComponent(token) +
+                                    '&state=incomplete',
+                                    {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Accept': 'application/json'
+                                        }
+                                    }
+                                );
+                            });
+                        })
+                    );
+                });
+
+                return Promise.all(requests);
+            }).then(function () {
+                showMessage('Done. The selected checkmarks have been cleared.');
+            }).catch(function (error) {
+                console.error(error);
+                showMessage('Something went wrong while clearing the checkmarks.');
+            });
+        }
+
+        t.render(function () {
             t.getRestApi().isAuthorized().then(function (authorized) {
                 if (authorized) {
-                    button.innerText = 'Authorized ✓';
-                    button.disabled = true;
+                    loadChecklists();
+                } else {
+                    content.innerHTML =
+                        '<button id="authorizeButton">Authorize Clear Checkmarks</button>';
+
+                    document.getElementById('authorizeButton').onclick =
+                        function () {
+                            t.getRestApi().authorize({
+                                scope: 'read,write'
+                            }).then(function () {
+                                loadChecklists();
+                            });
+                        };
                 }
             });
-
-            button.onclick = function () {
-                t.getRestApi().authorize({
-                    scope: 'read,write'
-                }).then(function () {
-                    button.innerText = 'Authorized ✓';
-                    button.disabled = true;
-                });
-            };
         });
     </script>
 </body>
 </html>
+```
