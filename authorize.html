@@ -10,15 +10,18 @@
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
 
     <script>
-        var t = window.TrelloPowerUp.iframe();
+        var t = window.TrelloPowerUp.iframe({
+            appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
+            appName: 'Clear Checkmarks'
+        });
 
-        var restApi = t.getRestApi();
-
-        document.getElementById('authorizeButton').onclick = function () {
-            restApi.authorize({
-                scope: 'read,write'
-            });
-        };
+        t.render(function () {
+            document.getElementById('authorizeButton').onclick = function () {
+                t.getRestApi().authorize({
+                    scope: 'read,write'
+                });
+            };
+        });
     </script>
 </body>
 </html>
