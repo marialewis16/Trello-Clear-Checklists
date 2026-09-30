@@ -6,9 +6,8 @@
 </head>
 <body>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-    <script>
-        var ICON = 'https://marialewis16.github.io/Trello-Clear-Checklists/icon.svg';
 
+    <script>
         window.TrelloPowerUp.initialize({
             'board-buttons': function (t, opts) {
                 return [{
@@ -17,20 +16,14 @@
                     callback: function (t) {
                         return t.popup({
                             title: 'Clear Checkmarks',
-                            items: [
-                                {
-                                    text: 'Test Button',
-                                    callback: function (t) {
-                                        return t.alert({
-                                            message: 'The Clear Checklists button is working.'
-                                        });
-                                    }
-                                }
-                            ]
+                            url: './authorize.html'
                         });
                     }
                 }];
             }
+        }, {
+            appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
+            appName: 'Clear Checkmarks'
         });
     </script>
 </body>
