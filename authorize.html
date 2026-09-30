@@ -15,17 +15,22 @@
             appName: 'Clear Checkmarks'
         });
 
-      t.render(function () {
-    t.getRestApi().isAuthorized().then(function (authorized) {
-        if (authorized) {
-            document.getElementById('authorizeButton').innerText = 'Authorized ✓';
-            document.getElementById('authorizeButton').disabled = true;
-        }
-    });
-            document.getElementById('authorizeButton').onclick = function () {
-             alert('Authorize button click detected');
+        t.render(function () {
+            var button = document.getElementById('authorizeButton');
+
+            t.getRestApi().isAuthorized().then(function (authorized) {
+                if (authorized) {
+                    button.innerText = 'Authorized ✓';
+                    button.disabled = true;
+                }
+            });
+
+            button.onclick = function () {
                 t.getRestApi().authorize({
                     scope: 'read,write'
+                }).then(function () {
+                    button.innerText = 'Authorized ✓';
+                    button.disabled = true;
                 });
             };
         });
