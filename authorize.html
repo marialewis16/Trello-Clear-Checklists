@@ -21,9 +21,9 @@
             content.innerHTML = '<p>' + message + '</p>';
         }
 
-      function getApi() {
-    return Promise.resolve(t.getRestApi());
-}
+        function getApi() {
+            return Promise.resolve(t.getRestApi());
+        }
 
         function loadChecklists() {
             showMessage('Finding checklists...');
@@ -49,6 +49,7 @@
                         encodeURIComponent(token)
                     );
                 });
+
             }).then(function (response) {
 
                 if (!response.ok) {
@@ -169,121 +170,82 @@
 
                     }).then(function (cards) {
 
-                       var requests = [];
+                        var requests = [];
 
-cards.forEach(function (card) {
+                        cards.forEach(function (card) {
 
-    if (!card.checklists) {
-        return;
-    }
+                            if (!card.checklists) {
+                                return;
+                            }
 
-    card.checklists.forEach(function (checklist) {
+                            card.checklists.forEach(function (checklist) {
 
-        var selected = selectedChecklists.some(
-            function (selectedChecklist) {
-                return selectedChecklist.name === checklist.name;
-            }
-        );
+                                var selected = selectedChecklists.some(
+                                    function (selectedChecklist) {
+                                        return selectedChecklist.name === checklist.name;
+                                    }
+                                );
 
-        if (!selected) {
-            return;
-        }
+                                if (!selected) {
+                                    return;
+                                }
 
-        if (!checklist.checkItems) {
-            return;
-        }
+                                if (!checklist.checkItems) {
+                                    return;
+                                }
 
-        checklist.checkItems.forEach(function (item) {
+                                checklist.checkItems.forEach(function (item) {
 
-            if (item.state !== 'complete') {
-                return;
-            }
+                                    if (item.state !== 'complete') {
+                                        return;
+                                    }
 
-            requests.push(
-                fetch(
-                    'https://api.trello.com/1/cards/' +
-                    card.id +
-                    '/checklist/' +
-                    checklist.id +
-                    '/checkItem/' +
-                    item.id +
-                    '?state=incomplete&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                    encodeURIComponent(token),
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    }
-                ).then(function (response) {
+                                    requests.push(
+                                        fetch(
+                                            'https://api.trello.com/1/cards/' +
+                                            card.id +
+                                            '/checklist/' +
+                                            checklist.id +
+                                            '/checkItem/' +
+                                            item.id +
+                                            '?state=incomplete&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                                            encodeURIComponent(token),
+                                            {
+                                                method: 'PUT',
+                                                headers: {
+                                                    'Accept': 'application/json'
+                                                }
+                                            }
+                                        ).then(function (response) {
 
-                    if (!response.ok) {
-                        throw new Error(
-                            'Unable to uncheck "' +
-                            item.name +
-                            '".'
-                        );
-                    }
+                                            if (!response.ok) {
+                                                throw new Error(
+                                                    'Unable to uncheck "' +
+                                                    item.name +
+                                                    '".'
+                                                );
+                                            }
 
-                    return response.json();
-                })
-            );
-        });
-    });
-});
+                                            return response.json();
+                                        })
+                                    );
+                                });
+                            });
+                        });
 
-return new Promise(function (resolve, reject) {
-
-    var index = 0;
-    var active = 0;
-    var completed = 0;
-    var total = requests.length;
-
-    if (total === 0) {
-        resolve();
-        return;
-    }
-
-    function runNext() {
-
-        while (active < 5 && index < total) {
-
-            var request = requests[index++];
-
-            active++;
-
-            request.then(function () {
-
-                active--;
-                completed++;
-
-                if (completed === total) {
-                    resolve();
-                    return;
-                }
-
-                runNext();
-
-            }).catch(function (error) {
-
-                reject(error);
-
-            });
-        }
-    }
-
-    runNext();
-});
+                        return Promise.all(requests);
                     });
                 });
 
-           }).then(function () {
-    showMessage(
-        'Done. The selected checkmarks have been cleared.'
-    );
+            }).then(function () {
 
- window.parent.postMessage({ action: 'close' }, '*');
-}).catch(function (error) {
+                showMessage(
+                    'Done. The selected checkmarks have been cleared.'
+                );
+
+                window.parent.postMessage({ action: 'close' }, '*');
+
+            }).catch(function (error) {
 
                 console.error(error);
 
