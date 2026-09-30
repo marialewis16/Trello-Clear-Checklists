@@ -21,48 +21,40 @@
             content.innerHTML = '<p>' + message + '</p>';
         }
 
+        function getApi() {
+            return t.getRestApi();
+        }
+
         function loadChecklists() {
             showMessage('Finding checklists...');
 
             Promise.all([
                 t.board('id'),
-                t.getRestApi().getToken()
+                getApi()
             ]).then(function (results) {
                 var boardId = results[0];
-                var token = results[1];
+                var api = results[1];
 
-                if (!token) {
-                    showMessage('Authorization is required.');
-                    return;
-                }
-
-                return fetch(
-                    'https://api.trello.com/1/boards/' +
-                    boardId +
-                    '/checklists?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                    encodeURIComponent(token),
-                    {
-                        headers: {
-                            'Accept': 'application/json'
-                        }
+                return api.getToken().then(function (token) {
+                    if (!token) {
+                        throw new Error('Authorization is required.');
                     }
-                );
-            }).then(function (response) {
-                if (!response) {
-                    return;
-                }
 
+                    return fetch(
+                        'https://api.trello.com/1/boards/' +
+                        boardId +
+                        '/checklists?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                        encodeURIComponent(token)
+                    );
+                });
+            }).then(function (response) {
                 if (!response.ok) {
                     throw new Error('Trello returned an error.');
                 }
 
                 return response.json();
             }).then(function (checklists) {
-                if (!checklists) {
-                    return;
-                }
-
-                if (checklists.length === 0) {
+                if (!checklists || checklists.length === 0) {
                     showMessage('No checklists were found on this board.');
                     return;
                 }
@@ -77,9 +69,11 @@
                 allButton.innerText = 'All Checklists';
                 allButton.style.display = 'block';
                 allButton.style.marginBottom = '8px';
+
                 allButton.onclick = function () {
                     confirmClear('All Checklists', checklists);
                 };
+
                 content.appendChild(allButton);
 
                 var names = [];
@@ -117,7 +111,8 @@
 
         function confirmClear(name, checklists) {
             var confirmed = window.confirm(
-                'Clear all checkmarks in "' + name +
+                'Clear all checkmarks in "' +
+                name +
                 '" across this board?'
             );
 
@@ -131,79 +126,124 @@
         function clearChecklists(checklists) {
             showMessage('Clearing checkmarks...');
 
-            t.getRestApi().getToken().then(function (token) {
-                if (!token) {
-                    throw new Error('Authorization is required.');
-                }
+            Promise.all([
+                t.board('id'),
+                getApi()
+            ]).then(function (results) {
+                var boardId = results[0];
+                var api = results[1];
 
-                var requests = [];
+                return api.getToken().then(function (token) {
+                    if (!token) {
+                        throw new Error('Authorization is required.');
+                    }
 
-                checklists.forEach(function (checklist) {
-                    requests.push(
-                        fetch(
-                            'https://api.trello.com/1/checklists/' +
-                            checklist.id +
-                            '/checkItems?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                            encodeURIComponent(token),
-                            {
-                                headers: {
-                                    'Accept': 'application/json'
+                    return fetch(
+                        'https://api.trello.com/1/boards/' +
+                        boardId +
+                        '/cards?checklists=all&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                        encodeURIComponent(token)
+                    );
+                }).then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Unable to load board cards.');
+                    }
+
+                    return response.json();
+                }).then(function (cards) {
+                    var requests = [];
+
+                    cards.forEach(function (card) {
+                        if (!card.checklists) {
+                            return;
+                        }
+
+                        card.checklists.forEach(function (checklist) {
+                            var shouldClear = checklists.some(function (selected) {
+                                return selected.name === checklist.name;
+                            });
+
+                            if (!shouldClear) {
+                                return;
+                            }
+
+                            if (!checklist.checkItems) {
+                                return;
+                            }
+
+                            checklist.checkItems.forEach(function (item) {
+                                if (item.state !== 'complete') {
+                                    return;
                                 }
-                            }
-                        ).then(function (response) {
-                            if (!response.ok) {
-                                throw new Error('Unable to read checklist items.');
-                            }
 
-                            return response.json();
-                        }).then(function (items) {
-                            return items.map(function (item) {
-                                return fetch(
-                                    'https://api.trello.com/1/checklists/' +
-                                    checklist.id +
-                                    '/checkItems/' +
-                                    item.id +
-                                    '?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                                    encodeURIComponent(token) +
-                                    '&state=incomplete',
-                                    {
-                                        method: 'PUT',
-                                        headers: {
-                                            'Accept': 'application/json'
+                                requests.push(
+                                    fetch(
+                                        'https://api.trello.com/1/cards/' +
+                                        card.id +
+                                        '/checklist/' +
+                                        checklist.id +
+                                        '/checkItem/' +
+                                        item.id +
+                                        '?state=incomplete&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
+                                        encodeURIComponent(token),
+                                        {
+                                            method: 'PUT',
+                                            headers: {
+                                                'Accept': 'application/json'
+                                            }
                                         }
-                                    }
+                                    ).then(function (response) {
+                                        if (!response.ok) {
+                                            throw new Error(
+                                                'Unable to clear a checklist item.'
+                                            );
+                                        }
+                                    })
                                 );
                             });
-                        })
-                    );
-                });
+                        });
+                    });
 
-                return Promise.all(requests);
+                    return Promise.all(requests);
+                });
             }).then(function () {
-                showMessage('Done. The selected checkmarks have been cleared.');
+                showMessage(
+                    'Done. The selected checkmarks have been cleared.'
+                );
             }).catch(function (error) {
                 console.error(error);
-                showMessage('Something went wrong while clearing the checkmarks.');
+                showMessage(
+                    'Something went wrong while clearing the checkmarks.'
+                );
             });
         }
 
         t.render(function () {
-            t.getRestApi().isAuthorized().then(function (authorized) {
+            getApi().then(function (api) {
+                return api.isAuthorized();
+            }).then(function (authorized) {
                 if (authorized) {
                     loadChecklists();
                 } else {
                     content.innerHTML =
-                        '<button id="authorizeButton">Authorize Clear Checkmarks</button>';
+                        '<button id="authorizeButton">' +
+                        'Authorize Clear Checkmarks' +
+                        '</button>';
 
                     document.getElementById('authorizeButton').onclick =
                         function () {
-                            t.getRestApi().authorize({
-                                scope: 'read,write'
+                            getApi().then(function (api) {
+                                return api.authorize({
+                                    scope: 'read,write'
+                                });
                             }).then(function () {
                                 loadChecklists();
                             });
                         };
                 }
+            }).catch(function (error) {
+                console.error(error);
+                showMessage('Unable to connect to Trello.');
             });
         });
     </script>
