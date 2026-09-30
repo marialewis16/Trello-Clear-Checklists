@@ -245,9 +245,7 @@
         'Done. The selected checkmarks have been cleared.'
     );
 
-   setTimeout(function () {
-    window.parent.postMessage({ action: 'close' }, '*');
-}, 2000);
+ window.parent.postMessage({ action: 'close' }, '*');
 }).catch(function (error) {
 
                 console.error(error);
