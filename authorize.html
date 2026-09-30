@@ -17,6 +17,7 @@
 
         t.render(function () {
             document.getElementById('authorizeButton').onclick = function () {
+             alert('Authorize button click detected');
                 t.getRestApi().authorize({
                     scope: 'read,write'
                 });
