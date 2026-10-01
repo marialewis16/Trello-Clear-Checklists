@@ -234,7 +234,7 @@
 
    var promise = Promise.resolve();
 
-combinedIngredients.slice().reverse().forEach(
+combinedIngredients.forEach(
     function (ingredient) {
 
         promise = promise.then(function () {
