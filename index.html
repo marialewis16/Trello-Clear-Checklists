@@ -10,39 +10,28 @@
     <script>
         window.TrelloPowerUp.initialize({
             'board-buttons': function (t, opts) {
-
-                return t.board('id').then(function (board) {
-
-                    var buttons = [
-                        {
-                            text: 'Clear Checkmarks',
-                            condition: 'edit',
-                            callback: function (t) {
-                                return t.popup({
-                                    title: 'Clear Checkmarks',
-                                    url: './authorize.html?v=5'
-                                });
-                            }
+                return [
+                    {
+                        text: 'Clear Checkmarks',
+                        condition: 'edit',
+                        callback: function (t) {
+                            return t.popup({
+                                title: 'Clear Checkmarks',
+                                url: './authorize.html?v=5'
+                            });
                         }
-                    ];
-
-                    if (board.id === 'zXot8DtF') {
-
-                        buttons.push({
-                            text: 'Make Grocery List',
-                            condition: 'edit',
-                            callback: function (t) {
-                                return t.popup({
-                                    title: 'Make Grocery List',
-                                  url: './grocery.html?v=2'
-                                });
-                            }
-                        });
-
+                    },
+                    {
+                        text: 'Make Grocery List',
+                        condition: 'edit',
+                        callback: function (t) {
+                            return t.popup({
+                                title: 'Make Grocery List',
+                                url: './grocery.html?v=2'
+                            });
+                        }
                     }
-
-                    return buttons;
-                });
+                ];
             }
         }, {
             appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
