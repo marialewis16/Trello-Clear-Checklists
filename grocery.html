@@ -232,9 +232,9 @@
 
                     }).then(function (checklist) {
 
-                       var promise = Promise.resolve();
+   var promise = Promise.resolve();
 
-combinedIngredients.forEach(
+combinedIngredients.slice().reverse().forEach(
     function (ingredient) {
 
         promise = promise.then(function () {
