@@ -17,6 +17,8 @@
 
         var content = document.getElementById('content');
 
+        var groceryListBuilding = false;
+
         function showMessage(message) {
             content.innerHTML = '<p>' + message + '</p>';
         }
@@ -26,6 +28,12 @@
         }
 
         function loadGroceryList() {
+
+            if (groceryListBuilding) {
+                return;
+            }
+
+            groceryListBuilding = true;
 
             showMessage('Building grocery list...');
 
@@ -232,43 +240,44 @@
 
                     }).then(function (checklist) {
 
-   var promise = Promise.resolve();
+                        var promise = Promise.resolve();
 
-combinedIngredients.forEach(
-    function (ingredient) {
+                        combinedIngredients.forEach(
+                            function (ingredient) {
 
-        promise = promise.then(function () {
+                                promise = promise.then(function () {
 
-            return fetch(
-                'https://api.trello.com/1/checklists/' +
-                checklist.id +
-                '/checkItems?name=' +
-                encodeURIComponent(ingredient) +
-                '&checked=false' +
-                '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f' +
-                '&token=' +
-                encodeURIComponent(data.token),
-                {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                }
-            ).then(function (response) {
+                                    return fetch(
+                                        'https://api.trello.com/1/checklists/' +
+                                        checklist.id +
+                                        '/checkItems?name=' +
+                                        encodeURIComponent(ingredient) +
+                                        '&pos=bottom' +
+                                        '&checked=false' +
+                                        '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f' +
+                                        '&token=' +
+                                        encodeURIComponent(data.token),
+                                        {
+                                            method: 'POST',
+                                            headers: {
+                                                'Accept': 'application/json'
+                                            }
+                                        }
+                                    ).then(function (response) {
 
-                if (!response.ok) {
-                    throw new Error(
-                        'Unable to add an ingredient.'
-                    );
-                }
+                                        if (!response.ok) {
+                                            throw new Error(
+                                                'Unable to add an ingredient.'
+                                            );
+                                        }
 
-                return response.json();
-            });
-        });
-    }
-);
+                                        return response.json();
+                                    });
+                                });
+                            }
+                        );
 
-return promise;
+                        return promise;
                     });
                 });
             }).then(function () {
