@@ -24,23 +24,22 @@
                     }
                 ];
 
-                return t.board('name').then(function (boardName) {
+                if (opts.board &&
+                    opts.board.id === 'zXot8DtF') {
 
-                    if (boardName === "Next Week's Meals") {
-                        buttons.push({
-                            text: 'Make Grocery List',
-                            condition: 'edit',
-                            callback: function (t) {
-                                return t.popup({
-                                    title: 'Make Grocery List',
-                                    url: './grocery.html?v=1'
-                                });
-                            }
-                        });
-                    }
+                    buttons.push({
+                        text: 'Make Grocery List',
+                        condition: 'edit',
+                        callback: function (t) {
+                            return t.popup({
+                                title: 'Make Grocery List',
+                                url: './grocery.html?v=1'
+                            });
+                        }
+                    });
+                }
 
-                    return buttons;
-                });
+                return buttons;
             }
         }, {
             appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
