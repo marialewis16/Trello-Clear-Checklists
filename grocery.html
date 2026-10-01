@@ -95,12 +95,12 @@
                     var cards = data[1];
 
                     var groceriesList = lists.find(function (list) {
-                        return list.name === 'Groceries List';
+                        return list.name === 'GROCERY LIST';
                     });
 
                     if (!groceriesList) {
                         throw new Error(
-                            'The "Groceries List" list was not found.'
+                            'The "GROCERY LIST" list was not found.'
                         );
                     }
 
@@ -117,8 +117,8 @@
                         }
 
                         if (
-                            cardList.name === 'Remove List' ||
-                            cardList.name === 'Groceries List'
+                            cardList.name === 'REMOVE' ||
+                            cardList.name === 'GROCERY LIST'
                         ) {
                             return;
                         }
@@ -298,46 +298,46 @@
             });
         }
 
-      getApi().then(function (api) {
+        getApi().then(function (api) {
 
-    return api.isAuthorized();
+            return api.isAuthorized();
 
-}).then(function (authorized) {
+        }).then(function (authorized) {
 
-    if (authorized) {
+            if (authorized) {
 
-        loadGroceryList();
+                loadGroceryList();
 
-    } else {
+            } else {
 
-        content.innerHTML =
-            '<button id="authorizeButton">' +
-            'Authorize Clear Checkmarks' +
-            '</button>';
+                content.innerHTML =
+                    '<button id="authorizeButton">' +
+                    'Authorize Clear Checkmarks' +
+                    '</button>';
 
-        document.getElementById('authorizeButton').onclick =
-            function () {
+                document.getElementById('authorizeButton').onclick =
+                    function () {
 
-                getApi().then(function (api) {
+                        getApi().then(function (api) {
 
-                    return api.authorize({
-                        scope: 'read,write'
-                    });
+                            return api.authorize({
+                                scope: 'read,write'
+                            });
 
-                }).then(function () {
+                        }).then(function () {
 
-                    loadGroceryList();
+                            loadGroceryList();
 
-                });
-            };
-    }
+                        });
+                    };
+            }
 
-}).catch(function (error) {
+        }).catch(function (error) {
 
-    console.error(error);
-    showMessage('Unable to connect to Trello.');
+            console.error(error);
+            showMessage('Unable to connect to Trello.');
 
-});
+        });
     </script>
 </body>
 </html>
