@@ -232,43 +232,43 @@
 
                     }).then(function (checklist) {
 
-                        var requests = [];
+                       var promise = Promise.resolve();
 
-                        combinedIngredients.forEach(
-                            function (ingredient) {
+combinedIngredients.forEach(
+    function (ingredient) {
 
-                                requests.push(
-                                    fetch(
-                                        'https://api.trello.com/1/checklists/' +
-                                        checklist.id +
-                                        '/checkItems?name=' +
-                                        encodeURIComponent(ingredient) +
-                                        '&checked=false' +
-                                        '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f' +
-                                        '&token=' +
-                                        encodeURIComponent(data.token),
-                                        {
-                                            method: 'POST',
-                                            headers: {
-                                                'Accept': 'application/json'
-                                            }
-                                        }
-                                    ).then(function (response) {
+        promise = promise.then(function () {
 
-                                        if (!response.ok) {
-                                            throw new Error(
-                                                'Unable to add an ingredient.'
-                                            );
-                                        }
+            return fetch(
+                'https://api.trello.com/1/checklists/' +
+                checklist.id +
+                '/checkItems?name=' +
+                encodeURIComponent(ingredient) +
+                '&checked=false' +
+                '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f' +
+                '&token=' +
+                encodeURIComponent(data.token),
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }
+            ).then(function (response) {
 
-                                        return response.json();
-                                    })
-                                );
+                if (!response.ok) {
+                    throw new Error(
+                        'Unable to add an ingredient.'
+                    );
+                }
 
-                            }
-                        );
+                return response.json();
+            });
+        });
+    }
+);
 
-                        return Promise.all(requests);
+return promise;
                     });
                 });
             }).then(function () {
