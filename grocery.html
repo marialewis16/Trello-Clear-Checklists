@@ -298,49 +298,46 @@
             });
         }
 
-        t.render(function () {
+      getApi().then(function (api) {
 
-            getApi().then(function (api) {
+    return api.isAuthorized();
 
-                return api.isAuthorized();
+}).then(function (authorized) {
 
-            }).then(function (authorized) {
+    if (authorized) {
 
-                if (authorized) {
+        loadGroceryList();
+
+    } else {
+
+        content.innerHTML =
+            '<button id="authorizeButton">' +
+            'Authorize Clear Checkmarks' +
+            '</button>';
+
+        document.getElementById('authorizeButton').onclick =
+            function () {
+
+                getApi().then(function (api) {
+
+                    return api.authorize({
+                        scope: 'read,write'
+                    });
+
+                }).then(function () {
 
                     loadGroceryList();
 
-                } else {
+                });
+            };
+    }
 
-                    content.innerHTML =
-                        '<button id="authorizeButton">' +
-                        'Authorize Clear Checkmarks' +
-                        '</button>';
+}).catch(function (error) {
 
-                    document.getElementById('authorizeButton').onclick =
-                        function () {
+    console.error(error);
+    showMessage('Unable to connect to Trello.');
 
-                            getApi().then(function (api) {
-
-                                return api.authorize({
-                                    scope: 'read,write'
-                                });
-
-                            }).then(function () {
-
-                                loadGroceryList();
-
-                            });
-                        };
-                }
-
-            }).catch(function (error) {
-
-                console.error(error);
-                showMessage('Unable to connect to Trello.');
-
-            });
-        });
+});
     </script>
 </body>
 </html>
