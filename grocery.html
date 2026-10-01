@@ -286,7 +286,9 @@
                     'Done. Your grocery list has been created.'
                 );
 
-                t.closePopup();
+                setTimeout(function () {
+        t.closePopup();
+    }, 1000);
 
             }).catch(function (error) {
 
