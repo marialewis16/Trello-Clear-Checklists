@@ -11,7 +11,7 @@
         window.TrelloPowerUp.initialize({
             'board-buttons': function (t, opts) {
 
-                return t.board('id').then(function (boardId) {
+                return t.board('id').then(function (board) {
 
                     var buttons = [
                         {
@@ -26,7 +26,7 @@
                         }
                     ];
 
-                    if (boardId === 'zXot8DtF') {
+                    if (board.id === 'zXot8DtF') {
 
                         buttons.push({
                             text: 'Make Grocery List',
