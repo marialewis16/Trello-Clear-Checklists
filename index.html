@@ -11,7 +11,7 @@
         window.TrelloPowerUp.initialize({
             'board-buttons': function (t, opts) {
 
-                var buttons = [
+                return [
                     {
                         text: 'Clear Checkmarks',
                         condition: 'edit',
@@ -21,14 +21,8 @@
                                 url: './authorize.html?v=5'
                             });
                         }
-                    }
-                ];
-
-                var context = t.getContext();
-
-                if (context.board === 'zXot8DtF') {
-
-                    buttons.push({
+                    },
+                    {
                         text: 'Make Grocery List',
                         condition: 'edit',
                         callback: function (t) {
@@ -37,11 +31,8 @@
                                 url: './grocery.html?v=1'
                             });
                         }
-                    });
-
-                }
-
-                return buttons;
+                    }
+                ];
             }
         }, {
             appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
