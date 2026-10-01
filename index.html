@@ -10,16 +10,28 @@
     <script>
         window.TrelloPowerUp.initialize({
             'board-buttons': function (t, opts) {
-                return [{
-                    text: 'Clear Checkmarks',
-                    condition: 'edit',
-                    callback: function (t) {
-                        return t.popup({
-                            title: 'Clear Checkmarks',
-         url: './authorize.html?v=5'
-                        });
+                return [
+                    {
+                        text: 'Clear Checkmarks',
+                        condition: 'edit',
+                        callback: function (t) {
+                            return t.popup({
+                                title: 'Clear Checkmarks',
+                                url: './authorize.html?v=5'
+                            });
+                        }
+                    },
+                    {
+                        text: 'Make Grocery List',
+                        condition: 'edit',
+                        callback: function (t) {
+                            return t.popup({
+                                title: 'Make Grocery List',
+                                url: './grocery.html?v=1'
+                            });
+                        }
                     }
-                }];
+                ];
             }
         }, {
             appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
