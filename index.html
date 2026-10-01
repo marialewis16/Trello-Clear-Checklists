@@ -24,25 +24,18 @@
                     }
                 ];
 
-        return t.board('id').then(function (boardId) {
+      buttons.push({
+    text: 'Make Grocery List',
+    condition: 'always',
+    callback: function (t) {
+        return t.popup({
+            title: 'Make Grocery List',
+            url: './grocery.html?v=1'
+        });
+    }
+});
 
-   if (boardId === 'zXot8DtF') {
-
-                        buttons.push({
-                            text: 'Make Grocery List',
-                            condition: 'always',
-                            callback: function (t) {
-                                return t.popup({
-                                    title: 'Make Grocery List',
-                                    url: './grocery.html?v=1'
-                                });
-                            }
-                        });
-
-                    }
-
-                    return buttons;
-                });
+return buttons;
             }
         }, {
             appKey: '2ae1eadafa40bdc591b8e0ecbc9e5e6f',
