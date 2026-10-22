@@ -1,8 +1,44 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Clear Checkmarks</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 12px;
+            color: #172b4d;
+        }
+
+        p {
+            margin-top: 0;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background: #0c66e4;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0055cc;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+    </style>
 </head>
 <body>
     <div id="content">Loading...</div>
@@ -73,8 +109,6 @@
 
                 var allButton = document.createElement('button');
                 allButton.innerText = 'All Checklists';
-                allButton.style.display = 'block';
-                allButton.style.marginBottom = '8px';
 
                 allButton.onclick = function () {
                     confirmClear('All Checklists', checklists);
@@ -97,8 +131,6 @@
                     var button = document.createElement('button');
 
                     button.innerText = name;
-                    button.style.display = 'block';
-                    button.style.marginBottom = '8px';
 
                     button.onclick = function () {
 
@@ -243,9 +275,9 @@
                     'Done. The selected checkmarks have been cleared.'
                 );
 
-               console.log('ABOUT TO CLOSE POPUP');
-t.closePopup();
-console.log('CLOSE COMMAND SENT');
+                console.log('ABOUT TO CLOSE POPUP');
+                t.closePopup();
+                console.log('CLOSE COMMAND SENT');
 
             }).catch(function (error) {
 
@@ -303,3 +335,4 @@ console.log('CLOSE COMMAND SENT');
     </script>
 </body>
 </html>
+```
