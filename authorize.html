@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,13 +14,6 @@
 
         p {
             margin-top: 0;
-        }
-
-        .board-info {
-            font-size: 12px;
-            color: #626f86;
-            margin-bottom: 12px;
-            overflow-wrap: anywhere;
         }
 
         .checklist-option {
@@ -47,19 +41,6 @@
         button:disabled {
             opacity: 0.6;
             cursor: default;
-        }
-
-        .card-source {
-            margin: 4px 2px 0;
-            padding: 0 4px;
-            color: #626f86;
-            font-size: 12px;
-            line-height: 1.5;
-            overflow-wrap: anywhere;
-        }
-
-        .card-source strong {
-            color: #172b4d;
         }
     </style>
 </head>
@@ -122,41 +103,32 @@
                         throw new Error('Authorization is required.');
                     }
 
-                    return Promise.all([
-                        Promise.resolve(token),
-
-                        getJson(
-                            apiUrl(
-                                '/boards/' + boardId + '?fields=id,name',
-                                token
-                            )
-                        ),
-
-                        getJson(
-                            apiUrl(
-                                '/boards/' + boardId +
-                                '/cards?filter=open&checklists=all',
-                                token
-                            )
+                    return getJson(
+                        apiUrl(
+                            '/boards/' + boardId +
+                            '/cards?filter=open&checklists=all',
+                            token
                         )
-                    ]);
+                    ).then(function (cards) {
+                        return {
+                            boardId: boardId,
+                            token: token,
+                            cards: cards
+                        };
+                    });
                 });
 
-            }).then(function (results) {
-
-                var board = results[1];
-                var cards = results[2];
+            }).then(function (data) {
 
                 var entries = [];
 
-                cards.forEach(function (card) {
+                data.cards.forEach(function (card) {
 
                     if (!card.checklists) {
                         return;
                     }
 
                     card.checklists.forEach(function (checklist) {
-
                         entries.push({
                             checklist: checklist,
                             cardId: card.id,
@@ -166,32 +138,13 @@
                 });
 
                 if (entries.length === 0) {
-                    content.innerHTML = '';
-
-                    var emptyMessage = document.createElement('p');
-                    emptyMessage.textContent =
-                        'No checklists were found on active cards.';
-
-                    content.appendChild(emptyMessage);
-
-                    var emptyBoard = document.createElement('p');
-                    emptyBoard.className = 'board-info';
-                    emptyBoard.textContent =
-                        'Board: ' + board.name + ' (' + board.id + ')';
-
-                    content.appendChild(emptyBoard);
+                    showMessage(
+                        'No checklists were found on active cards.'
+                    );
                     return;
                 }
 
                 content.innerHTML = '';
-
-                var boardInfo = document.createElement('p');
-                boardInfo.className = 'board-info';
-                boardInfo.textContent =
-                    'Reading active cards from board: ' +
-                    board.name + ' (' + board.id + ')';
-
-                content.appendChild(boardInfo);
 
                 var heading = document.createElement('p');
                 heading.textContent = 'Choose a checklist to clear:';
@@ -233,50 +186,21 @@
                         }
                     );
 
-                    var option = document.createElement('div');
-                    option.className = 'checklist-option';
-
                     var button = document.createElement('button');
                     button.textContent = name;
 
                     button.onclick = function () {
-
-                        var matchingChecklists = matchingEntries.map(
-                            function (entry) {
+                        confirmClear(
+                            name,
+                            matchingEntries.map(function (entry) {
                                 return entry.checklist;
-                            }
+                            })
                         );
-
-                        confirmClear(name, matchingChecklists);
                     };
 
+                    var option = document.createElement('div');
+                    option.className = 'checklist-option';
                     option.appendChild(button);
-
-                    var cardNames = [];
-
-                    matchingEntries.forEach(function (entry) {
-                        if (cardNames.indexOf(entry.cardName) === -1) {
-                            cardNames.push(entry.cardName);
-                        }
-                    });
-
-                    cardNames.sort(function (a, b) {
-                        return a.localeCompare(b);
-                    });
-
-                    var source = document.createElement('div');
-                    source.className = 'card-source';
-
-                    var sourceLabel = document.createElement('strong');
-                    sourceLabel.textContent = 'Found on these active cards:';
-
-                    source.appendChild(sourceLabel);
-
-                    var cardList = document.createElement('div');
-                    cardList.textContent = cardNames.join(', ');
-
-                    source.appendChild(cardList);
-                    option.appendChild(source);
 
                     content.appendChild(option);
                 });
@@ -327,10 +251,16 @@
                     return getJson(
                         apiUrl(
                             '/boards/' + boardId +
-                            '/cards?checklists=all',
+                            '/cards?filter=open&checklists=all',
                             token
                         )
                     ).then(function (cards) {
+
+                        var selectedIds = selectedChecklists.map(
+                            function (checklist) {
+                                return checklist.id;
+                            }
+                        );
 
                         var requests = [];
 
@@ -342,14 +272,10 @@
 
                             card.checklists.forEach(function (checklist) {
 
-                                var selected = selectedChecklists.some(
-                                    function (selectedChecklist) {
-                                        return selectedChecklist.name ===
-                                            checklist.name;
-                                    }
-                                );
-
-                                if (!selected || !checklist.checkItems) {
+                                if (
+                                    selectedIds.indexOf(checklist.id) === -1 ||
+                                    !checklist.checkItems
+                                ) {
                                     return;
                                 }
 
@@ -400,9 +326,7 @@
                     'Done. The selected checkmarks have been cleared.'
                 );
 
-                console.log('ABOUT TO CLOSE POPUP');
                 t.closePopup();
-                console.log('CLOSE COMMAND SENT');
 
             }).catch(function (error) {
 
@@ -472,3 +396,4 @@
     </script>
 </body>
 </html>
+```
