@@ -15,6 +15,17 @@
             margin-top: 0;
         }
 
+        .board-info {
+            font-size: 12px;
+            color: #626f86;
+            margin-bottom: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .checklist-option {
+            margin-bottom: 14px;
+        }
+
         button {
             display: block;
             width: 100%;
@@ -37,6 +48,19 @@
             opacity: 0.6;
             cursor: default;
         }
+
+        .card-source {
+            margin: 4px 2px 0;
+            padding: 0 4px;
+            color: #626f86;
+            font-size: 12px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .card-source strong {
+            color: #172b4d;
+        }
     </style>
 </head>
 <body>
@@ -52,12 +76,33 @@
 
         var content = document.getElementById('content');
 
+        var API_KEY = '2ae1eadafa40bdc591b8e0ecbc9e5e6f';
+
         function showMessage(message) {
-            content.innerHTML = '<p>' + message + '</p>';
+            content.textContent = message;
         }
 
         function getApi() {
             return Promise.resolve(t.getRestApi());
+        }
+
+        function apiUrl(path, token) {
+            return 'https://api.trello.com/1' + path +
+                (path.indexOf('?') === -1 ? '?' : '&') +
+                'key=' + API_KEY +
+                '&token=' + encodeURIComponent(token);
+        }
+
+        function getJson(url) {
+            return fetch(url).then(function (response) {
+                if (!response.ok) {
+                    throw new Error(
+                        'Trello request failed (' + response.status + ').'
+                    );
+                }
+
+                return response.json();
+            });
         }
 
         function loadChecklists() {
@@ -77,25 +122,32 @@
                         throw new Error('Authorization is required.');
                     }
 
-                    return fetch(
-                        'https://api.trello.com/1/boards/' +
-                        boardId +
-                        '/cards?filter=open&checklists=all&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                        encodeURIComponent(token)
-                    );
+                    return Promise.all([
+                        Promise.resolve(token),
+
+                        getJson(
+                            apiUrl(
+                                '/boards/' + boardId + '?fields=id,name',
+                                token
+                            )
+                        ),
+
+                        getJson(
+                            apiUrl(
+                                '/boards/' + boardId +
+                                '/cards?filter=open&checklists=all',
+                                token
+                            )
+                        )
+                    ]);
                 });
 
-            }).then(function (response) {
+            }).then(function (results) {
 
-                if (!response.ok) {
-                    throw new Error('Trello returned an error.');
-                }
+                var board = results[1];
+                var cards = results[2];
 
-                return response.json();
-
-            }).then(function (cards) {
-
-                var checklists = [];
+                var entries = [];
 
                 cards.forEach(function (card) {
 
@@ -104,65 +156,138 @@
                     }
 
                     card.checklists.forEach(function (checklist) {
-                        checklists.push(checklist);
+
+                        entries.push({
+                            checklist: checklist,
+                            cardId: card.id,
+                            cardName: card.name
+                        });
                     });
                 });
 
-                if (checklists.length === 0) {
-                    showMessage(
-                        'No checklists were found on active cards.'
-                    );
+                if (entries.length === 0) {
+                    content.innerHTML = '';
+
+                    var emptyMessage = document.createElement('p');
+                    emptyMessage.textContent =
+                        'No checklists were found on active cards.';
+
+                    content.appendChild(emptyMessage);
+
+                    var emptyBoard = document.createElement('p');
+                    emptyBoard.className = 'board-info';
+                    emptyBoard.textContent =
+                        'Board: ' + board.name + ' (' + board.id + ')';
+
+                    content.appendChild(emptyBoard);
                     return;
                 }
 
                 content.innerHTML = '';
 
+                var boardInfo = document.createElement('p');
+                boardInfo.className = 'board-info';
+                boardInfo.textContent =
+                    'Reading active cards from board: ' +
+                    board.name + ' (' + board.id + ')';
+
+                content.appendChild(boardInfo);
+
                 var heading = document.createElement('p');
-                heading.innerText = 'Choose a checklist to clear:';
+                heading.textContent = 'Choose a checklist to clear:';
                 content.appendChild(heading);
 
                 var allButton = document.createElement('button');
-                allButton.innerText = 'All Checklists';
+                allButton.textContent = 'All Checklists';
 
                 allButton.onclick = function () {
-                    confirmClear('All Checklists', checklists);
+                    confirmClear(
+                        'All Checklists',
+                        entries.map(function (entry) {
+                            return entry.checklist;
+                        })
+                    );
                 };
 
                 content.appendChild(allButton);
 
                 var names = [];
 
-                checklists.forEach(function (checklist) {
-                    if (names.indexOf(checklist.name) === -1) {
-                        names.push(checklist.name);
+                entries.forEach(function (entry) {
+                    var name = entry.checklist.name;
+
+                    if (names.indexOf(name) === -1) {
+                        names.push(name);
                     }
                 });
 
-                names.sort();
+                names.sort(function (a, b) {
+                    return a.localeCompare(b);
+                });
 
                 names.forEach(function (name) {
 
-                    var button = document.createElement('button');
+                    var matchingEntries = entries.filter(
+                        function (entry) {
+                            return entry.checklist.name === name;
+                        }
+                    );
 
-                    button.innerText = name;
+                    var option = document.createElement('div');
+                    option.className = 'checklist-option';
+
+                    var button = document.createElement('button');
+                    button.textContent = name;
 
                     button.onclick = function () {
 
-                        var matching = checklists.filter(function (checklist) {
-                            return checklist.name === name;
-                        });
+                        var matchingChecklists = matchingEntries.map(
+                            function (entry) {
+                                return entry.checklist;
+                            }
+                        );
 
-                        confirmClear(name, matching);
+                        confirmClear(name, matchingChecklists);
                     };
 
-                    content.appendChild(button);
+                    option.appendChild(button);
+
+                    var cardNames = [];
+
+                    matchingEntries.forEach(function (entry) {
+                        if (cardNames.indexOf(entry.cardName) === -1) {
+                            cardNames.push(entry.cardName);
+                        }
+                    });
+
+                    cardNames.sort(function (a, b) {
+                        return a.localeCompare(b);
+                    });
+
+                    var source = document.createElement('div');
+                    source.className = 'card-source';
+
+                    var sourceLabel = document.createElement('strong');
+                    sourceLabel.textContent = 'Found on these active cards:';
+
+                    source.appendChild(sourceLabel);
+
+                    var cardList = document.createElement('div');
+                    cardList.textContent = cardNames.join(', ');
+
+                    source.appendChild(cardList);
+                    option.appendChild(source);
+
+                    content.appendChild(option);
                 });
 
             }).catch(function (error) {
 
                 console.error(error);
-                showMessage('Unable to load the checklists.');
-
+                showMessage(
+                    'Unable to load the checklists. ' +
+                    (error.message || '')
+                );
             });
         }
 
@@ -199,22 +324,13 @@
                         throw new Error('Authorization is required.');
                     }
 
-                    return fetch(
-                        'https://api.trello.com/1/boards/' +
-                        boardId +
-                        '/cards?checklists=all&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                        encodeURIComponent(token)
-                    ).then(function (response) {
-
-                        if (!response.ok) {
-                            throw new Error(
-                                'Unable to load board cards.'
-                            );
-                        }
-
-                        return response.json();
-
-                    }).then(function (cards) {
+                    return getJson(
+                        apiUrl(
+                            '/boards/' + boardId +
+                            '/cards?checklists=all',
+                            token
+                        )
+                    ).then(function (cards) {
 
                         var requests = [];
 
@@ -228,15 +344,12 @@
 
                                 var selected = selectedChecklists.some(
                                     function (selectedChecklist) {
-                                        return selectedChecklist.name === checklist.name;
+                                        return selectedChecklist.name ===
+                                            checklist.name;
                                     }
                                 );
 
-                                if (!selected) {
-                                    return;
-                                }
-
-                                if (!checklist.checkItems) {
+                                if (!selected || !checklist.checkItems) {
                                     return;
                                 }
 
@@ -248,14 +361,13 @@
 
                                     requests.push(
                                         fetch(
-                                            'https://api.trello.com/1/cards/' +
-                                            card.id +
-                                            '/checklist/' +
-                                            checklist.id +
-                                            '/checkItem/' +
-                                            item.id +
-                                            '?state=incomplete&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                                            encodeURIComponent(token),
+                                            apiUrl(
+                                                '/cards/' + card.id +
+                                                '/checklist/' + checklist.id +
+                                                '/checkItem/' + item.id +
+                                                '?state=incomplete',
+                                                token
+                                            ),
                                             {
                                                 method: 'PUT',
                                                 headers: {
@@ -267,8 +379,7 @@
                                             if (!response.ok) {
                                                 throw new Error(
                                                     'Unable to uncheck "' +
-                                                    item.name +
-                                                    '".'
+                                                    item.name + '".'
                                                 );
                                             }
 
@@ -298,7 +409,8 @@
                 console.error(error);
 
                 showMessage(
-                    'Something went wrong while clearing the checkmarks.'
+                    'Something went wrong while clearing the checkmarks. ' +
+                    (error.message || '')
                 );
             });
         }
@@ -317,26 +429,37 @@
 
                 } else {
 
-                    content.innerHTML =
-                        '<button id="authorizeButton">' +
-                        'Authorize Clear Checkmarks' +
-                        '</button>';
+                    content.innerHTML = '';
 
-                    document.getElementById('authorizeButton').onclick =
-                        function () {
+                    var authorizeButton =
+                        document.createElement('button');
 
-                            getApi().then(function (api) {
+                    authorizeButton.id = 'authorizeButton';
+                    authorizeButton.textContent =
+                        'Authorize Clear Checkmarks';
 
-                                return api.authorize({
-                                    scope: 'read,write'
-                                });
+                    authorizeButton.onclick = function () {
 
-                            }).then(function () {
+                        getApi().then(function (api) {
 
-                                loadChecklists();
-
+                            return api.authorize({
+                                scope: 'read,write'
                             });
-                        };
+
+                        }).then(function () {
+
+                            loadChecklists();
+
+                        }).catch(function (error) {
+
+                            console.error(error);
+                            showMessage(
+                                'Authorization failed. Please try again.'
+                            );
+                        });
+                    };
+
+                    content.appendChild(authorizeButton);
                 }
 
             }).catch(function (error) {
