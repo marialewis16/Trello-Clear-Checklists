@@ -85,6 +85,23 @@
             });
         }
 
+        function getBoardCards(boardId, token) {
+            return getJson(
+                apiUrl(
+                    '/boards/' + boardId +
+                    '/cards?filter=open&fields=id,name,idBoard&checklists=all',
+                    token
+                )
+            ).then(function (cards) {
+
+                // Keep only cards whose board ID exactly matches
+                // the board where this popup was opened.
+                return cards.filter(function (card) {
+                    return card.idBoard === boardId;
+                });
+            });
+        }
+
         function loadChecklists() {
             showMessage('Finding checklists...');
 
@@ -102,16 +119,9 @@
                         throw new Error('Authorization is required.');
                     }
 
-                    return getJson(
-                        apiUrl(
-                            '/boards/' + boardId +
-                            '/cards?filter=open&checklists=all',
-                            token
-                        )
-                    ).then(function (cards) {
+                    return getBoardCards(boardId, token).then(function (cards) {
                         return {
                             boardId: boardId,
-                            token: token,
                             cards: cards
                         };
                     });
@@ -131,7 +141,8 @@
                         entries.push({
                             checklist: checklist,
                             cardId: card.id,
-                            cardName: card.name
+                            cardName: card.name,
+                            boardId: card.idBoard
                         });
                     });
                 });
@@ -247,13 +258,7 @@
                         throw new Error('Authorization is required.');
                     }
 
-                    return getJson(
-                        apiUrl(
-                            '/boards/' + boardId +
-                            '/cards?filter=open&checklists=all',
-                            token
-                        )
-                    ).then(function (cards) {
+                    return getBoardCards(boardId, token).then(function (cards) {
 
                         var selectedIds = selectedChecklists.map(
                             function (checklist) {
