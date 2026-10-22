@@ -3,6 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>Make Grocery List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 12px;
+            color: #172b4d;
+        }
+
+        h3 {
+            margin-top: 0;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            background: #0c66e4;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0055cc;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+        }
+    </style>
 </head>
 <body>
     <div id="content">Loading...</div>
@@ -16,19 +50,65 @@
         });
 
         var content = document.getElementById('content');
-
         var groceryListBuilding = false;
 
+        var API_KEY = '2ae1eadafa40bdc591b8e0ecbc9e5e6f';
+
+        var NEXT_BOARD_NAME = "Next Week's Meals";
+        var THIS_BOARD_NAME = "This Week's Meals";
+
         function showMessage(message) {
-            content.innerHTML = '<p>' + message + '</p>';
+            content.textContent = message;
         }
 
         function getApi() {
             return Promise.resolve(t.getRestApi());
         }
 
-        function loadGroceryList() {
+        function apiUrl(path, token) {
+            return 'https://api.trello.com/1' + path +
+                (path.indexOf('?') === -1 ? '?' : '&') +
+                'key=' + API_KEY +
+                '&token=' + encodeURIComponent(token);
+        }
 
+        function getJson(url) {
+            return fetch(url).then(function (response) {
+                if (!response.ok) {
+                    throw new Error(
+                        'Trello request failed (' + response.status + ').'
+                    );
+                }
+
+                return response.json();
+            });
+        }
+
+        function showChoices() {
+            content.innerHTML =
+                '<h3>Make Grocery List</h3>' +
+                '<p>Which meals should be included?</p>' +
+                '<button id="nextWeekButton">Next Week\'s Meals</button>' +
+                '<button id="thisWeekButton">This Week\'s Meals</button>' +
+                '<button id="bothWeeksButton">Both Boards</button>';
+
+            document.getElementById('nextWeekButton').onclick =
+                function () {
+                    loadGroceryList('next');
+                };
+
+            document.getElementById('thisWeekButton').onclick =
+                function () {
+                    loadGroceryList('this');
+                };
+
+            document.getElementById('bothWeeksButton').onclick =
+                function () {
+                    loadGroceryList('both');
+                };
+        }
+
+        function loadGroceryList(selection) {
             if (groceryListBuilding) {
                 return;
             }
@@ -37,78 +117,126 @@
 
             showMessage('Building grocery list...');
 
-            Promise.all([
-                t.board('id'),
-                getApi()
-            ]).then(function (results) {
+            getApi().then(function (api) {
+                return api.getToken();
+            }).then(function (token) {
 
-                var boardId = results[0].id;
-                var api = results[1];
+                if (!token) {
+                    throw new Error('Authorization is required.');
+                }
 
-                return api.getToken().then(function (token) {
+                return getJson(
+                    apiUrl('/members/me/boards?fields=id,name,closed', token)
+                ).then(function (boards) {
 
-                    if (!token) {
-                        throw new Error('Authorization is required.');
-                    }
-
-                    return {
-                        boardId: boardId,
-                        token: token
-                    };
-                });
-
-            }).then(function (info) {
-
-                var boardId = info.boardId;
-                var token = info.token;
-
-                return Promise.all([
-
-                    fetch(
-                        'https://api.trello.com/1/boards/' +
-                        boardId +
-                        '/lists?key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                        encodeURIComponent(token)
-                    ),
-
-                    fetch(
-                        'https://api.trello.com/1/boards/' +
-                        boardId +
-                        '/cards?checklists=all&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                        encodeURIComponent(token)
-                    )
-
-                ]).then(function (responses) {
-
-                    if (!responses[0].ok || !responses[1].ok) {
-                        throw new Error('Unable to load the board.');
-                    }
-
-                    return Promise.all([
-                        responses[0].json(),
-                        responses[1].json()
-                    ]);
-
-                }).then(function (data) {
-
-                    var lists = data[0];
-                    var cards = data[1];
-
-                    var groceriesList = lists.find(function (list) {
-                        return list.name === 'GROCERY LIST';
+                    var nextBoard = boards.find(function (board) {
+                        return board.name === NEXT_BOARD_NAME &&
+                            !board.closed;
                     });
 
-                    if (!groceriesList) {
+                    var thisBoard = boards.find(function (board) {
+                        return board.name === THIS_BOARD_NAME &&
+                            !board.closed;
+                    });
+
+                    if (!nextBoard) {
                         throw new Error(
-                            'The "GROCERY LIST" list was not found.'
+                            'Could not find the board "' +
+                            NEXT_BOARD_NAME + '".'
                         );
                     }
 
-                    var ingredients = [];
+                    if (
+                        (selection === 'this' || selection === 'both') &&
+                        !thisBoard
+                    ) {
+                        throw new Error(
+                            'Could not find the board "' +
+                            THIS_BOARD_NAME + '".'
+                        );
+                    }
 
-                    cards.forEach(function (card) {
+                    var sourceBoards = [];
 
-                        var cardList = lists.find(function (list) {
+                    if (selection === 'next' || selection === 'both') {
+                        sourceBoards.push(nextBoard);
+                    }
+
+                    if (selection === 'this' || selection === 'both') {
+                        sourceBoards.push(thisBoard);
+                    }
+
+                    return Promise.all([
+                        Promise.resolve(token),
+                        Promise.resolve(nextBoard),
+                        Promise.resolve(sourceBoards)
+                    ]);
+                });
+            }).then(function (info) {
+
+                var token = info[0];
+                var destinationBoard = info[1];
+                var sourceBoards = info[2];
+
+                var boardRequests = sourceBoards.map(function (board) {
+
+                    return Promise.all([
+                        getJson(
+                            apiUrl(
+                                '/boards/' + board.id + '/lists',
+                                token
+                            )
+                        ),
+                        getJson(
+                            apiUrl(
+                                '/boards/' + board.id +
+                                '/cards?checklists=all',
+                                token
+                            )
+                        )
+                    ]).then(function (data) {
+                        return {
+                            board: board,
+                            lists: data[0],
+                            cards: data[1]
+                        };
+                    });
+                });
+
+                return Promise.all([
+                    Promise.resolve(token),
+                    getJson(
+                        apiUrl(
+                            '/boards/' + destinationBoard.id + '/lists',
+                            token
+                        )
+                    ),
+                    Promise.all(boardRequests)
+                ]);
+            }).then(function (data) {
+
+                var token = data[0];
+                var destinationLists = data[1];
+                var sourceData = data[2];
+
+                var groceriesList = destinationLists.find(function (list) {
+                    return list.name === 'GROCERY LIST';
+                });
+
+                if (!groceriesList) {
+                    throw new Error(
+                        'The "GROCERY LIST" list was not found on "' +
+                        NEXT_BOARD_NAME + '".'
+                    );
+                }
+
+                var ingredients = [];
+
+                sourceData.forEach(function (boardData) {
+
+                    boardData.cards.forEach(function (card) {
+
+                        var cardList = boardData.lists.find(function (list) {
                             return list.id === card.idList;
                         });
 
@@ -142,32 +270,27 @@
                                 if (item.state !== 'complete') {
                                     ingredients.push(item.name);
                                 }
-
                             });
-
                         });
-
                     });
-
-                    return {
-                        groceriesList: groceriesList,
-                        ingredients: ingredients,
-                        token: token
-                    };
                 });
+
+                return {
+                    token: token,
+                    groceriesList: groceriesList,
+                    ingredients: ingredients
+                };
             }).then(function (data) {
 
                 if (data.ingredients.length === 0) {
-                    showMessage(
-                        'No unchecked ingredients were found.'
-                    );
+                    showMessage('No unchecked ingredients were found.');
+                    groceryListBuilding = false;
                     return;
                 }
 
                 var counts = {};
 
                 data.ingredients.forEach(function (ingredient) {
-
                     if (!counts[ingredient]) {
                         counts[ingredient] = 0;
                     }
@@ -177,7 +300,6 @@
 
                 var combinedIngredients = Object.keys(counts).map(
                     function (ingredient) {
-
                         if (counts[ingredient] === 1) {
                             return ingredient;
                         }
@@ -191,12 +313,12 @@
                 });
 
                 return fetch(
-                    'https://api.trello.com/1/cards' +
-                    '?idList=' +
-                    encodeURIComponent(data.groceriesList.id) +
-                    '&name=Grocery List' +
-                    '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f&token=' +
-                    encodeURIComponent(data.token),
+                    apiUrl(
+                        '/cards?idList=' +
+                        encodeURIComponent(data.groceriesList.id) +
+                        '&name=' + encodeURIComponent('Grocery List'),
+                        data.token
+                    ),
                     {
                         method: 'POST',
                         headers: {
@@ -216,12 +338,11 @@
                 }).then(function (card) {
 
                     return fetch(
-                        'https://api.trello.com/1/cards/' +
-                        card.id +
-                        '/checklists?name=Ingredients' +
-                        '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f' +
-                        '&token=' +
-                        encodeURIComponent(data.token),
+                        apiUrl(
+                            '/cards/' + card.id +
+                            '/checklists?name=Ingredients',
+                            data.token
+                        ),
                         {
                             method: 'POST',
                             headers: {
@@ -248,15 +369,13 @@
                                 promise = promise.then(function () {
 
                                     return fetch(
-                                        'https://api.trello.com/1/checklists/' +
-                                        checklist.id +
-                                        '/checkItems?name=' +
-                                        encodeURIComponent(ingredient) +
-                                        '&pos=bottom' +
-                                        '&checked=false' +
-                                        '&key=2ae1eadafa40bdc591b8e0ecbc9e5e6f' +
-                                        '&token=' +
-                                        encodeURIComponent(data.token),
+                                        apiUrl(
+                                            '/checklists/' + checklist.id +
+                                            '/checkItems?name=' +
+                                            encodeURIComponent(ingredient) +
+                                            '&pos=bottom&checked=false',
+                                            data.token
+                                        ),
                                         {
                                             method: 'POST',
                                             headers: {
@@ -282,39 +401,43 @@
                 });
             }).then(function () {
 
+                if (!groceryListBuilding) {
+                    return;
+                }
+
                 showMessage(
                     'Done. Your grocery list has been created.'
                 );
 
-            
-       setTimeout(function () {
-    t.closePopup();
-}, 2000);
-  
+                setTimeout(function () {
+                    t.closePopup();
+                }, 2000);
 
             }).catch(function (error) {
 
                 console.error(error);
 
-            showMessage(
-    'Something went wrong while creating the grocery list.'
-);
+                showMessage(
+                    'Something went wrong while creating the grocery list. ' +
+                    (error && error.message ? error.message : '')
+                );
+
+                groceryListBuilding = false;
             });
         }
 
         getApi().then(function (api) {
-
             return api.isAuthorized();
 
         }).then(function (authorized) {
 
             if (authorized) {
-
-                loadGroceryList();
+                showChoices();
 
             } else {
 
                 content.innerHTML =
+                    '<p>Authorize Clear Checkmarks to continue.</p>' +
                     '<button id="authorizeButton">' +
                     'Authorize Clear Checkmarks' +
                     '</button>';
@@ -323,15 +446,18 @@
                     function () {
 
                         getApi().then(function (api) {
-
                             return api.authorize({
                                 scope: 'read,write'
                             });
 
                         }).then(function () {
+                            showChoices();
 
-                            loadGroceryList();
-
+                        }).catch(function (error) {
+                            console.error(error);
+                            showMessage(
+                                'Authorization failed. Please try again.'
+                            );
                         });
                     };
             }
@@ -340,7 +466,6 @@
 
             console.error(error);
             showMessage('Unable to connect to Trello.');
-
         });
     </script>
 </body>
