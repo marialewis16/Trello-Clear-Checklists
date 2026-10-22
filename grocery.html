@@ -84,13 +84,16 @@
             });
         }
 
-        function showChoices() {
+              function showChoices() {
             content.innerHTML =
-                '<h3>Make Grocery List</h3>' +
-                '<p>Which meals should be included?</p>' +
+                '<button id="bothWeeksButton">Both Weeks</button>' +
                 '<button id="nextWeekButton">Next Week\'s Meals</button>' +
-                '<button id="thisWeekButton">This Week\'s Meals</button>' +
-                '<button id="bothWeeksButton">Both Weeks</button>';
+                '<button id="thisWeekButton">This Week\'s Meals</button>';
+
+            document.getElementById('bothWeeksButton').onclick =
+                function () {
+                    loadGroceryList('both');
+                };
 
             document.getElementById('nextWeekButton').onclick =
                 function () {
@@ -100,11 +103,6 @@
             document.getElementById('thisWeekButton').onclick =
                 function () {
                     loadGroceryList('this');
-                };
-
-            document.getElementById('bothWeeksButton').onclick =
-                function () {
-                    loadGroceryList('both');
                 };
         }
 
